@@ -304,11 +304,31 @@ const ObstacleManager = (() => {
     ctx.fill();
   }
 
+  /* ---------- COLLISION WITH SPINE ---------- */
+  // Returns the obstacle type string if a spine hits one, otherwise null.
+  function checkSpineHit(spineX, spineY) {
+    const spineRadius = 6;
+    for (const o of obstacles) {
+      if (!o.alive) continue;
+      const hw = o.width / 2;
+      const hh = o.height / 2;
+      const nearX = Math.max(o.x - hw, Math.min(spineX, o.x + hw));
+      const nearY = Math.max(o.y - hh, Math.min(spineY, o.y + hh));
+      const dx = spineX - nearX;
+      const dy = spineY - nearY;
+      if (dx * dx + dy * dy < spineRadius * spineRadius) {
+        o.alive = false;
+        return o.type; // 'shark' | 'turtle' | 'seagull'
+      }
+    }
+    return null;
+  }
+
   /* ---------- RESET ---------- */
   function reset() {
     obstacles = [];
     spawnTimer = 4; // short initial delay before first obstacle
   }
 
-  return { update, draw, checkCrabHit, reset };
+  return { update, draw, checkCrabHit, checkSpineHit, reset };
 })();
