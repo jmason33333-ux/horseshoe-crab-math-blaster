@@ -38,8 +38,6 @@ const crab = {
   width: 70,
   height: 50,
   speed: 320,       // pixels/sec
-  targetX: 0,       // mouse target
-  useMouseX: false,
 };
 
 /* ---- SPINES ---- */
@@ -136,7 +134,7 @@ function showLevelIntro(level) {
     <p class="level-detail">🎈 ${balloons} balloons per question</p>
     <p class="level-detail">⭐ ${pointsPerQ} points per correct answer</p>
     <p class="level-detail">⏱ You have ${ROUND_DURATION} seconds — get as many as you can!</p>
-    <p class="level-detail" style="margin-top:12px;color:#ffe066">Move: ← → Arrow keys or mouse<br>Shoot: Spacebar or click</p>
+    <p class="level-detail" style="margin-top:12px;color:#ffe066">Move: ← → Arrow keys&nbsp;&nbsp;|&nbsp;&nbsp;Shoot: Spacebar</p>
   `;
   document.getElementById('levelIntroContent').innerHTML = content;
   showScreen('levelIntro');
@@ -269,25 +267,8 @@ function update(dt) {
 
 function updateCrab(dt) {
   // Keyboard movement
-  if (keys['ArrowLeft']) {
-    crab.x -= crab.speed * dt;
-    crab.useMouseX = false;
-  }
-  if (keys['ArrowRight']) {
-    crab.x += crab.speed * dt;
-    crab.useMouseX = false;
-  }
-
-  // Mouse tracking
-  if (crab.useMouseX) {
-    const diff = crab.targetX - crab.x;
-    const step = crab.speed * dt;
-    if (Math.abs(diff) < step) {
-      crab.x = crab.targetX;
-    } else {
-      crab.x += Math.sign(diff) * step;
-    }
-  }
+  if (keys['ArrowLeft'])  crab.x -= crab.speed * dt;
+  if (keys['ArrowRight']) crab.x += crab.speed * dt;
 
   // Clamp to canvas
   const half = crab.width / 2;
@@ -749,17 +730,8 @@ window.addEventListener('keyup', e => {
   keys[e.key] = false;
 });
 
-canvas.addEventListener('mousemove', e => {
-  if (currentState !== GameState.PLAYING) return;
-  const rect = canvas.getBoundingClientRect();
-  crab.targetX = e.clientX - rect.left;
-  crab.useMouseX = true;
-});
-
-canvas.addEventListener('click', e => {
-  if (currentState !== GameState.PLAYING) return;
-  fireSpine();
-});
+// Mouse/trackpad movement and click-to-fire intentionally removed.
+// Desktop controls: Arrow keys to move, Spacebar to shoot.
 
 function fireSpine() {
   if (spineCooldown > 0) return;
