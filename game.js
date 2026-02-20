@@ -342,7 +342,7 @@ function handleBalloonHit(balloon) {
     currentEquation = null;
     equationPending = true;
     equationDelay = EQUATION_DELAY;
-    document.getElementById('equationDisplay').textContent = '💥 Oops!';
+    document.getElementById('equationDisplay').textContent = '🐡 Ouch!';
 
   } else if (balloon.isCorrect) {
     // Correct answer
@@ -355,7 +355,7 @@ function handleBalloonHit(balloon) {
     currentEquation = null;
     equationPending = true;
     equationDelay = EQUATION_DELAY;
-    document.getElementById('equationDisplay').textContent = '✅ Correct!';
+    document.getElementById('equationDisplay').textContent = '🐠 Correct!';
 
   } else {
     // Wrong answer — just register miss and move on
@@ -366,7 +366,7 @@ function handleBalloonHit(balloon) {
     currentEquation = null;
     equationPending = true;
     equationDelay = EQUATION_DELAY;
-    document.getElementById('equationDisplay').textContent = '❌ Try again!';
+    document.getElementById('equationDisplay').textContent = '🐟 Try again!';
   }
 }
 

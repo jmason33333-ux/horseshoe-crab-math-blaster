@@ -1,76 +1,68 @@
 /* =============================================
-   BALLOONS.JS — Balloon Spawning & Movement
+   BALLOONS.JS — Fish Spawning & Movement
+   (Replaces balloons with canvas-drawn fish;
+    bomb replaced by a pufferfish 🐡)
    ============================================= */
 
 const BalloonManager = (() => {
 
-  const BALLOON_COLORS = [
+  const FISH_COLORS = [
     '#ff6b6b', '#ffa94d', '#ffe066',
     '#69db7c', '#74c0fc', '#cc5de8',
     '#f783ac', '#63e6be',
   ];
-  const BOMB_COLOR = '#333';
-  const BOMB_RADIUS = 28;
-  const BALLOON_RADIUS = 32;
+
+  const FISH_RADIUS = 36;   // hit-test radius (half body length approx)
+  const PUFFER_RADIUS = 34; // slightly smaller hit circle for pufferfish
 
   // Base speed (pixels per second) at level 1; scales 2.5% per level
   // Speed is CAPPED at level 6 equivalent so higher levels stay playable for kids
   const BASE_SPEED = 90;
-  const MAX_SPEED_LEVEL = 6; // levels 7-10 hold this speed; only math gets harder
+  const MAX_SPEED_LEVEL = 6;
 
-  let balloons = [];
-  let activeBombs = [];
+  let fish = [];
+  let activePuffers = [];
 
-  // Returns speed for a given level (2.5% increase per level, capped at level 6)
   function speedForLevel(level) {
     const effectiveLevel = Math.min(level, MAX_SPEED_LEVEL);
     return BASE_SPEED * Math.pow(1.025, effectiveLevel - 1);
   }
 
-  // Probability a bomb appears (increases slightly with level)
-  function bombChanceForLevel(level) {
-    return 0.08 + level * 0.01; // 9% at L1 → 18% at L10
+  function pufferChanceForLevel(level) {
+    return 0.08 + level * 0.01; // 9% L1 → 18% L10
   }
 
-  /* ---------- BALLOON OBJECT ---------- */
-  function createBalloon(x, y, vx, label, isAnswer, isCorrect, isBomb, color) {
-    return { x, y, vx, label, isAnswer, isCorrect, isBomb, color,
-      radius: isBomb ? BOMB_RADIUS : BALLOON_RADIUS,
+  /* ---------- FISH OBJECT ---------- */
+  function createFish(x, y, vx, label, isCorrect, isPuffer, color) {
+    return {
+      x, y, vx, label, isCorrect, isPuffer, color,
+      radius: isPuffer ? PUFFER_RADIUS : FISH_RADIUS,
       alive: true,
-      alpha: 1,
       popAnimTimer: 0,
       popping: false,
+      // gentle bob offset per fish so they don't all bob in sync
+      bobOffset: Math.random() * Math.PI * 2,
+      bobTime: 0,
     };
   }
 
-  /* ---------- SPAWN A SET OF BALLOONS FOR AN EQUATION ---------- */
+  /* ---------- SPAWN ---------- */
   function spawnEquationBalloons(equation, level, canvasWidth, canvasHeight) {
-    balloons = [];
-    activeBombs = [];
+    fish = [];
+    activePuffers = [];
 
     const speed = speedForLevel(level);
-    const choices = [...equation.choices]; // already shuffled by EquationEngine
-    const numBalloons = choices.length;
+    const choices = [...equation.choices];
+    const numFish = choices.length;
 
-    // --- HORIZONTAL STAGGER LAYOUT ---
-    // Each balloon travels on its own horizontal row.
-    // Rows are spread across the UPPER HALF of the play area with generous spacing.
-    // Balloons on even rows go LEFT→RIGHT, odd rows go RIGHT→LEFT.
-    // Each balloon is OFFSET in time (x start position) so they arrive at different
-    // moments — no wall of balloons, always one or two visible at a time.
-
-    // How much vertical space to use (upper portion only, keep bottom free for crab)
     const topMargin = 30;
-    const bottomMargin = canvasHeight * 0.45; // balloons stay in top 55%
+    const bottomMargin = canvasHeight * 0.45;
     const usableHeight = canvasHeight - topMargin - bottomMargin;
-    const rowSpacing = usableHeight / (numBalloons + 1);
+    const rowSpacing = usableHeight / (numFish + 1);
+    const staggerGap = FISH_RADIUS * 2 + 55;
 
-    // Time-offset stagger: each balloon starts further off-screen so they arrive
-    // sequentially rather than all at once. Gap = roughly 1.2 balloon-diameters apart.
-    const staggerGap = (BALLOON_RADIUS * 2 + 55); // pixels of extra offset per balloon
-
-    // Shuffle the indices so correct answer isn't always on same row
-    const rowOrder = Array.from({ length: numBalloons }, (_, i) => i);
+    // Shuffle row assignments so correct answer isn't always same row
+    const rowOrder = Array.from({ length: numFish }, (_, i) => i);
     for (let i = rowOrder.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [rowOrder[i], rowOrder[j]] = [rowOrder[j], rowOrder[i]];
@@ -78,230 +70,357 @@ const BalloonManager = (() => {
 
     choices.forEach((val, i) => {
       const isCorrect = val === equation.answer;
-      const row = rowOrder[i]; // which vertical row this balloon occupies
-      const goRight = (row % 2 === 0); // direction alternates by row
-
-      // Base start position — guaranteed fully off-screen with generous margin
-      // so balloon 0 never "pops in" visibly on frame 1
-      const baseOffscreen = BALLOON_RADIUS + 60;
-      // Stagger offset: balloon i starts extra distance off-screen so they arrive
-      // at different times. Randomise the order a bit so it doesn't feel mechanical.
+      const row = rowOrder[i];
+      const goRight = (row % 2 === 0);
+      const baseOffscreen = FISH_RADIUS + 60;
       const staggerOffset = staggerGap * i + Math.random() * 30;
-
       const startX = goRight
         ? -(baseOffscreen + staggerOffset)
         :  canvasWidth + baseOffscreen + staggerOffset;
-
       const vx = goRight ? speed : -speed;
-
-      // Y: evenly distributed rows, with a small random nudge per row
       const y = topMargin + rowSpacing * (row + 1) + (Math.random() * 12 - 6);
-
-      const color = BALLOON_COLORS[i % BALLOON_COLORS.length];
-      balloons.push(createBalloon(startX, y, vx, String(val), true, isCorrect, false, color));
+      const color = FISH_COLORS[i % FISH_COLORS.length];
+      fish.push(createFish(startX, y, vx, String(val), isCorrect, false, color));
     });
 
-    // Possibly add a bomb balloon — place it on a random row at an extra stagger offset
-    const addBomb = Math.random() < bombChanceForLevel(level);
-    if (addBomb) {
-      const bombRow = Math.floor(Math.random() * numBalloons);
+    // Pufferfish bomb
+    const addPuffer = Math.random() < pufferChanceForLevel(level);
+    if (addPuffer) {
+      const bombRow = Math.floor(Math.random() * numFish);
       const goRight = Math.random() < 0.5;
-      const bombStagger = staggerGap * (numBalloons + 1) * Math.random();
+      const bombStagger = staggerGap * (numFish + 1) * Math.random();
       const startX = goRight
-        ? -(BALLOON_RADIUS + 60 + bombStagger)
-        :  canvasWidth + BALLOON_RADIUS + 60 + bombStagger;
-      const vx = goRight ? speed * 0.9 : -speed * 0.9;
+        ? -(PUFFER_RADIUS + 60 + bombStagger)
+        :  canvasWidth + PUFFER_RADIUS + 60 + bombStagger;
+      const vx = goRight ? speed * 0.85 : -speed * 0.85;
       const y = topMargin + rowSpacing * (bombRow + 1);
-      activeBombs.push(createBalloon(startX, y, vx, '💣', false, false, true, BOMB_COLOR));
+      activePuffers.push(createFish(startX, y, vx, '!', false, true, '#e65100'));
     }
   }
 
   /* ---------- UPDATE ---------- */
   function update(dt) {
-    const all = [...balloons, ...activeBombs];
-    all.forEach(b => {
-      if (!b.alive) return;
-      if (b.popping) {
-        b.popAnimTimer -= dt;
-        if (b.popAnimTimer <= 0) b.alive = false;
+    const all = [...fish, ...activePuffers];
+    all.forEach(f => {
+      if (!f.alive) return;
+      if (f.popping) {
+        f.popAnimTimer -= dt;
+        if (f.popAnimTimer <= 0) f.alive = false;
         return;
       }
-      b.x += b.vx * dt;
+      f.x += f.vx * dt;
+      f.bobTime += dt;
     });
   }
 
-  /* ---------- CHECK IF ALL ANSWER BALLOONS GONE ---------- */
-  // A balloon is "done" only if it has fully EXITED the screen on the FAR side
-  // (i.e. it has actually crossed). Balloons still queued off-screen waiting to
-  // enter are NOT done — we must wait for them to cross and exit before moving on.
+  /* ---------- ALL GONE CHECK ---------- */
   function allGone(canvasWidth) {
-    const all = [...balloons, ...activeBombs];
+    const all = [...fish, ...activePuffers];
     if (all.length === 0) return true;
-    return all.every(b => !b.alive || hasExited(b, canvasWidth));
+    return all.every(f => !f.alive || hasExited(f, canvasWidth));
   }
 
-  // hasExited: true only when the balloon has travelled THROUGH the screen and out
-  // the other side. We detect this by checking direction of travel vs position.
-  function hasExited(b, canvasWidth) {
-    if (!b.alive) return true;
-    if (b.vx > 0) {
-      // Moving right — exited when past right edge
-      return b.x > canvasWidth + b.radius + 20;
-    } else {
-      // Moving left — exited when past left edge
-      return b.x < -b.radius - 20;
-    }
+  function hasExited(f, canvasWidth) {
+    if (!f.alive) return true;
+    if (f.vx > 0) return f.x > canvasWidth + f.radius + 20;
+    return f.x < -f.radius - 20;
   }
 
-  // Legacy helper kept for any external uses
-  function isOffScreen(b, canvasWidth) {
-    return b.x < -b.radius - 20 || b.x > canvasWidth + b.radius + 20;
+  function isOffScreen(f, canvasWidth) {
+    return f.x < -f.radius - 20 || f.x > canvasWidth + f.radius + 20;
   }
 
   /* ---------- HIT TEST ---------- */
-  // Returns hit balloon or null
   function checkHit(spineX, spineY) {
-    const all = [...balloons, ...activeBombs];
-    for (const b of all) {
-      if (!b.alive || b.popping) continue;
-      const dx = b.x - spineX;
-      const dy = b.y - spineY;
-      if (Math.sqrt(dx * dx + dy * dy) < b.radius) {
-        popBalloon(b);
-        return b;
+    const all = [...fish, ...activePuffers];
+    for (const f of all) {
+      if (!f.alive || f.popping) continue;
+      const dx = f.x - spineX;
+      const dy = f.y - spineY;
+      if (Math.sqrt(dx * dx + dy * dy) < f.radius) {
+        popFish(f);
+        return f;
       }
     }
     return null;
   }
 
-  function popBalloon(b) {
-    b.popping = true;
-    b.popAnimTimer = 0.35; // seconds for pop animation
+  function popFish(f) {
+    f.popping = true;
+    f.popAnimTimer = 0.4;
   }
 
   /* ---------- DRAW ---------- */
   function draw(ctx) {
-    const all = [...balloons, ...activeBombs];
-    all.forEach(b => {
-      if (!b.alive) return;
-      drawBalloon(ctx, b);
+    const all = [...fish, ...activePuffers];
+    all.forEach(f => {
+      if (!f.alive) return;
+      ctx.save();
+      ctx.globalAlpha = f.popping ? Math.max(0, f.popAnimTimer / 0.4) : 1;
+      if (f.popping) {
+        drawPopBurst(ctx, f);
+      } else if (f.isPuffer) {
+        drawPufferfish(ctx, f);
+      } else {
+        drawFish(ctx, f);
+      }
+      ctx.restore();
     });
   }
 
-  function drawBalloon(ctx, b) {
-    ctx.save();
-    ctx.globalAlpha = b.popping ? Math.max(0, b.popAnimTimer / 0.35) : 1;
-
-    if (b.popping) {
-      // Pop burst effect
-      const progress = 1 - (b.popAnimTimer / 0.35);
-      const burstR = b.radius * (1 + progress * 1.2);
+  /* ---------- POP BURST ---------- */
+  function drawPopBurst(ctx, f) {
+    const progress = 1 - (f.popAnimTimer / 0.4);
+    const burstR = f.radius * (1 + progress * 1.5);
+    // Bubble-burst rings
+    for (let ring = 0; ring < 3; ring++) {
       ctx.beginPath();
-      ctx.arc(b.x, b.y, burstR, 0, Math.PI * 2);
-      ctx.fillStyle = b.isBomb ? '#ff4400' : b.color;
+      ctx.arc(f.x, f.y, burstR * (0.4 + ring * 0.3), 0, Math.PI * 2);
+      ctx.strokeStyle = f.isPuffer ? '#ff6600' : f.color;
+      ctx.lineWidth = 3 - ring;
+      ctx.globalAlpha = Math.max(0, (f.popAnimTimer / 0.4) - ring * 0.2);
+      ctx.stroke();
+    }
+    // Bubble droplets
+    for (let d = 0; d < 6; d++) {
+      const angle = (d / 6) * Math.PI * 2 + progress * 2;
+      const dist = burstR * 0.9;
+      ctx.beginPath();
+      ctx.arc(f.x + Math.cos(angle) * dist, f.y + Math.sin(angle) * dist, 4, 0, Math.PI * 2);
+      ctx.fillStyle = f.isPuffer ? '#ffaa00' : f.color;
+      ctx.globalAlpha = Math.max(0, f.popAnimTimer / 0.4);
       ctx.fill();
-      ctx.restore();
-      return;
     }
+  }
 
-    if (b.isBomb) {
-      drawBombBalloon(ctx, b);
-    } else {
-      drawRegularBalloon(ctx, b);
-    }
+  /* ---------- DRAW REGULAR FISH ---------- */
+  function drawFish(ctx, f) {
+    const r = f.radius;
+    // Gentle bob: small vertical sine wave
+    const bob = Math.sin(f.bobTime * 2.2 + f.bobOffset) * 3;
+    const cx = f.x;
+    const cy = f.y + bob;
+
+    // Fish faces the direction it swims
+    const facingRight = f.vx > 0;
+    const dir = facingRight ? 1 : -1;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (!facingRight) ctx.scale(-1, 1); // flip horizontally when swimming left
+
+    // Drop shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 4;
+
+    // --- TAIL FIN ---
+    ctx.fillStyle = shadeColor(f.color, -20);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.65, 0);
+    ctx.lineTo(-r * 1.22, -r * 0.55);
+    ctx.lineTo(-r * 1.05, 0);
+    ctx.lineTo(-r * 1.22, r * 0.55);
+    ctx.closePath();
+    ctx.fill();
+
+    // --- BODY (ellipse) ---
+    const bodyGrad = ctx.createRadialGradient(-r * 0.15, -r * 0.2, r * 0.05, 0, 0, r * 0.9);
+    bodyGrad.addColorStop(0, lightenColor(f.color, 40));
+    bodyGrad.addColorStop(1, f.color);
+    ctx.fillStyle = bodyGrad;
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 0.9, r * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(f.color, -30);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // --- TOP FIN ---
+    ctx.fillStyle = shadeColor(f.color, -15);
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.2, -r * 0.52);
+    ctx.quadraticCurveTo(r * 0.1, -r * 0.92, r * 0.35, -r * 0.52);
+    ctx.closePath();
+    ctx.fill();
+
+    // --- SCALES (3 arcs) ---
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.2;
+    [-r * 0.3, r * 0.05, r * 0.38].forEach(sx => {
+      ctx.beginPath();
+      ctx.arc(sx, 0, r * 0.28, Math.PI * 0.15, Math.PI * 0.85);
+      ctx.stroke();
+    });
+
+    // --- BELLY highlight ---
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(r * 0.05, r * 0.18, r * 0.45, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- EYE ---
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(r * 0.58, -r * 0.1, r * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    ctx.arc(r * 0.61, -r * 0.1, r * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(r * 0.65, -r * 0.14, r * 0.04, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- MOUTH (cute smile) ---
+    ctx.strokeStyle = shadeColor(f.color, -40);
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(r * 0.78, r * 0.06, r * 0.1, 0.2, Math.PI - 0.2);
+    ctx.stroke();
+
+    // --- NUMBER LABEL on body ---
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#fff';
+    const fontSize = f.label.length > 2 ? r * 0.42 : r * 0.52;
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Un-flip text so it always reads left-to-right
+    if (!facingRight) ctx.scale(-1, 1);
+    ctx.fillText(f.label, facingRight ? 0 : 0, r * 0.06);
 
     ctx.restore();
   }
 
-  function drawRegularBalloon(ctx, b) {
-    const r = b.radius;
+  /* ---------- DRAW PUFFERFISH ---------- */
+  function drawPufferfish(ctx, f) {
+    const r = f.radius;
+    const bob = Math.sin(f.bobTime * 1.6 + f.bobOffset) * 2.5;
+    const cx = f.x;
+    const cy = f.y + bob;
 
-    // Shadow
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    const facingRight = f.vx > 0;
+    if (!facingRight) ctx.scale(-1, 1);
+
+    // Drop shadow
     ctx.shadowColor = 'rgba(0,0,0,0.3)';
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 5;
 
-    // Balloon body
+    // SPINES all around (puffer is inflated)
+    const spineCount = 14;
+    ctx.strokeStyle = '#bf360c';
+    ctx.lineWidth = 2;
+    for (let s = 0; s < spineCount; s++) {
+      const angle = (s / spineCount) * Math.PI * 2;
+      const innerR = r * 0.88;
+      const outerR = r * 1.28;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * innerR, Math.sin(angle) * innerR);
+      ctx.lineTo(Math.cos(angle) * outerR, Math.sin(angle) * outerR);
+      ctx.stroke();
+    }
+
+    // Body — round inflated ball
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.2, r * 0.05, 0, 0, r);
+    bodyGrad.addColorStop(0, '#ffcc80');
+    bodyGrad.addColorStop(0.6, '#ff8f00');
+    bodyGrad.addColorStop(1, '#e65100');
+    ctx.fillStyle = bodyGrad;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = b.color;
+    ctx.arc(0, 0, r * 0.88, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.strokeStyle = '#bf360c';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Shine highlight
-    ctx.shadowBlur = 0;
+    // Spots
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    [[r * 0.25, -r * 0.3, r * 0.12], [-r * 0.25, r * 0.2, r * 0.09], [r * 0.1, r * 0.35, r * 0.08]].forEach(([sx, sy, sr]) => {
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Belly highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.beginPath();
-    ctx.arc(b.x - r * 0.28, b.y - r * 0.28, r * 0.22, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.ellipse(-r * 0.1, r * 0.2, r * 0.38, r * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Knot at bottom
+    // Eye (wide, alarmed look)
+    ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(b.x, b.y + r, 4, 0, Math.PI * 2);
-    ctx.fillStyle = b.color;
+    ctx.arc(r * 0.42, -r * 0.22, r * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    ctx.arc(r * 0.44, -r * 0.22, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(r * 0.49, -r * 0.27, r * 0.05, 0, Math.PI * 2);
     ctx.fill();
 
-    // String
+    // Alarmed eyebrow
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(b.x, b.y + r + 4);
-    ctx.lineTo(b.x + 6, b.y + r + 22);
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 1.5;
+    ctx.moveTo(r * 0.26, -r * 0.44);
+    ctx.lineTo(r * 0.58, -r * 0.48);
     ctx.stroke();
 
-    // Label
+    // Puckered mouth
+    ctx.strokeStyle = '#bf360c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(r * 0.62, r * 0.1, r * 0.1, -0.5, 0.5);
+    ctx.stroke();
+
+    // "!" danger label — un-flip for readability
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 4;
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${r * 0.62}px Arial`;
+    ctx.font = `bold ${r * 0.55}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 3;
-    ctx.fillText(b.label, b.x, b.y);
+    if (!facingRight) ctx.scale(-1, 1);
+    ctx.fillText('✕', 0, r * 0.08);
+
+    ctx.restore();
   }
 
-  function drawBombBalloon(ctx, b) {
-    const r = b.radius;
+  /* ---------- COLOR HELPERS ---------- */
+  function shadeColor(hex, amount) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+    const b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+    return `rgb(${r},${g},${b})`;
+  }
 
-    // Dark balloon
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-    const grad = ctx.createRadialGradient(b.x - r * 0.2, b.y - r * 0.2, r * 0.1, b.x, b.y, r);
-    grad.addColorStop(0, '#666');
-    grad.addColorStop(1, '#111');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.strokeStyle = '#ff4400';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Fuse on top
-    ctx.beginPath();
-    ctx.moveTo(b.x + r * 0.4, b.y - r * 0.7);
-    ctx.quadraticCurveTo(b.x + r * 0.7, b.y - r * 1.1, b.x + r * 0.5, b.y - r * 1.3);
-    ctx.strokeStyle = '#c8a400';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Fuse spark
-    ctx.beginPath();
-    ctx.arc(b.x + r * 0.5, b.y - r * 1.3, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffdd00';
-    ctx.fill();
-
-    // Emoji bomb label
-    ctx.font = `${r * 0.9}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('💣', b.x, b.y + 2);
+  function lightenColor(hex, amount) {
+    return shadeColor(hex, amount);
   }
 
   /* ---------- RESET ---------- */
   function reset() {
-    balloons = [];
-    activeBombs = [];
+    fish = [];
+    activePuffers = [];
   }
 
+  // Keep public API identical to old balloons.js so game.js needs no changes
   return {
     spawnEquationBalloons,
     update,
@@ -310,6 +429,6 @@ const BalloonManager = (() => {
     allGone,
     isOffScreen,
     reset,
-    get all() { return [...balloons, ...activeBombs]; }
+    get all() { return [...fish, ...activePuffers]; }
   };
 })();
