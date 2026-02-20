@@ -19,6 +19,22 @@ function resizeCanvas() {
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+/* ---- MOBILE FISH SPEED PATCH ----
+   On narrow mobile screens the fish cross too fast.
+   Fix: lock all levels to the same base speed (no level scaling)
+   and scale vx down by MOBILE_SPEED_FACTOR after each spawn.
+   ----------------------------------------- */
+const MOBILE_SPEED_FACTOR = 0.65; // ~35% slower, flat across all levels
+(function patchMobileFishSpeed() {
+  const _orig = BalloonManager.spawnEquationBalloons.bind(BalloonManager);
+  BalloonManager.spawnEquationBalloons = function(equation, level, w, h) {
+    _orig(equation, 1, w, h);          // always pass level=1 → no speed scaling
+    BalloonManager.all.forEach(f => {  // then scale vx down for mobile
+      f.vx *= MOBILE_SPEED_FACTOR;
+    });
+  };
+})();
+
 /* ---- GAME STATE ---- */
 const GameState = {
   MENU: 'menu',
