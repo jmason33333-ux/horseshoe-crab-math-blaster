@@ -1,0 +1,348 @@
+/* =============================================
+   HORSESHOE CRAB MATH BLAST - Styles
+   ============================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #001a33;
+  font-family: 'Segoe UI', 'Arial Rounded MT Bold', Arial, sans-serif;
+  color: #fff;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- SCREENS ---- */
+.screen {
+  display: none;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ---- MENU CONTENT ---- */
+.menu-content {
+  background: rgba(0, 60, 120, 0.92);
+  border: 3px solid #00bfff;
+  border-radius: 24px;
+  padding: 40px 50px;
+  text-align: center;
+  max-width: 560px;
+  width: 90%;
+  box-shadow: 0 0 40px rgba(0, 191, 255, 0.4);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size: 3em;
+  color: #ffe066;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+  margin-bottom: 8px;
+}
+
+h2 {
+  font-size: 2em;
+  color: #ffe066;
+  margin-bottom: 20px;
+}
+
+.subtitle {
+  font-size: 1.1em;
+  color: #b0e0ff;
+  margin-bottom: 20px;
+}
+
+.crab-logo {
+  font-size: 5em;
+  margin: 10px 0 20px 0;
+  animation: bounce 1.5s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-block;
+  margin: 8px;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  letter-spacing: 0.5px;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #ffe066, #ffb300);
+  color: #003366;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #00bfff, #0077cc);
+  color: #fff;
+}
+
+/* ---- NAME INPUT ---- */
+.name-input {
+  display: block;
+  margin: 0 auto 20px auto;
+  padding: 12px 20px;
+  font-size: 1.2em;
+  border-radius: 50px;
+  border: 2px solid #00bfff;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  text-align: center;
+  width: 80%;
+  outline: none;
+}
+
+.name-input::placeholder {
+  color: #b0d4f0;
+}
+
+.name-input:focus {
+  border-color: #ffe066;
+  background: rgba(255,255,255,0.15);
+}
+
+/* ---- CONTROLS HINT ---- */
+.controls-hint {
+  margin-top: 18px;
+  font-size: 0.85em;
+  color: #7ec8e3;
+  line-height: 1.8;
+}
+
+/* ---- HIGH SCORE LIST ---- */
+.high-score-list {
+  margin: 10px 0 20px 0;
+  text-align: left;
+}
+
+.high-score-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  margin: 4px 0;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  font-size: 1em;
+}
+
+.high-score-entry .rank {
+  color: #ffe066;
+  font-weight: bold;
+  width: 30px;
+}
+
+.high-score-entry .hs-name {
+  flex: 1;
+  padding-left: 8px;
+}
+
+.high-score-entry .hs-score {
+  color: #ffe066;
+  font-weight: bold;
+}
+
+/* ---- HUD ---- */
+#hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: rgba(0, 20, 50, 0.88);
+  border-bottom: 2px solid #00bfff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 10;
+}
+
+#hudLeft {
+  font-size: 0.9em;
+  color: #b0e0ff;
+  min-width: 120px;
+}
+
+#hudCenter {
+  flex: 1;
+  text-align: center;
+}
+
+#equationDisplay {
+  font-size: 1.6em;
+  font-weight: bold;
+  color: #ffe066;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.3);
+  padding: 4px 20px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+#hudRight {
+  display: flex;
+  gap: 16px;
+  font-size: 0.95em;
+  font-weight: bold;
+  color: #fff;
+  min-width: 180px;
+  justify-content: flex-end;
+}
+
+/* ---- CANVAS ---- */
+#gameScreen {
+  flex-direction: column;
+}
+
+#gameCanvas {
+  display: block;
+  margin-top: 60px; /* below HUD */
+  background: transparent;
+  cursor: crosshair;
+}
+
+/* ---- LEVEL INTRO ---- */
+#levelIntroContent {
+  margin-bottom: 20px;
+}
+
+#levelIntroContent h2 {
+  font-size: 2.2em;
+  color: #ffe066;
+}
+
+#levelIntroContent .level-detail {
+  font-size: 1em;
+  color: #b0e0ff;
+  margin: 6px 0;
+  line-height: 1.7;
+}
+
+#levelIntroContent .math-type {
+  font-size: 1.3em;
+  color: #fff;
+  background: rgba(0,191,255,0.2);
+  border-radius: 12px;
+  padding: 8px 16px;
+  margin: 12px 0;
+  display: inline-block;
+}
+
+/* ---- LEVEL COMPLETE ---- */
+#levelCompleteContent {
+  margin-bottom: 20px;
+}
+
+.level-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 10px;
+  margin: 5px 0;
+  font-size: 1em;
+}
+
+.level-stat .stat-label { color: #b0e0ff; }
+.level-stat .stat-value { color: #ffe066; font-weight: bold; }
+
+/* ---- REPORT CARD ---- */
+.report-card {
+  max-width: 620px;
+}
+
+.report-section {
+  margin: 14px 0;
+  text-align: left;
+}
+
+.report-section h3 {
+  color: #00bfff;
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.report-level-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  margin: 3px 0;
+  font-size: 0.9em;
+}
+
+.report-level-row .rl-label { color: #b0e0ff; }
+.report-level-row .rl-score { color: #ffe066; font-weight: bold; }
+
+.total-score-banner {
+  background: linear-gradient(135deg, rgba(255,224,102,0.2), rgba(255,179,0,0.2));
+  border: 2px solid #ffe066;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 12px 0;
+  font-size: 1.4em;
+  font-weight: bold;
+  color: #ffe066;
+}
+
+.strength-tag {
+  display: inline-block;
+  background: rgba(0,200,100,0.25);
+  border: 1px solid #00c864;
+  color: #80ffb4;
+  border-radius: 20px;
+  padding: 4px 14px;
+  margin: 3px;
+  font-size: 0.9em;
+}
+
+.improve-tag {
+  display: inline-block;
+  background: rgba(255,160,0,0.2);
+  border: 1px solid #ffa000;
+  color: #ffd080;
+  border-radius: 20px;
+  padding: 4px 14px;
+  margin: 3px;
+  font-size: 0.9em;
+}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #00bfff; border-radius: 3px; }
