@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <title>Math Blast! 🦀</title>
+  <link rel="stylesheet" href="mobile-style.css" />
+</head>
+<body>
+
+  <!-- MAIN MENU -->
+  <div id="mainMenu" class="screen active">
+    <div class="menu-content">
+      <h1>🦀 Math Blast!</h1>
+      <p class="subtitle">Help the horseshoe crab zap the fish!</p>
+      <div class="crab-logo">🦀</div>
+      <button id="startBtn" class="btn btn-primary">▶ Play!</button>
+      <button id="highScoreBtn" class="btn btn-secondary">🏆 High Scores</button>
+      <div class="controls-hint">
+        <p>👈 Tap left/right to move &nbsp;|&nbsp; Tap 🎯 to shoot!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAME ENTRY -->
+  <div id="nameScreen" class="screen">
+    <div class="menu-content">
+      <h2>Who's Playing? 🌊</h2>
+      <input type="text" id="playerName" class="name-input"
+             placeholder="Your name!" maxlength="12"
+             autocomplete="off" autocorrect="off" autocapitalize="words" />
+      <button id="nameConfirmBtn" class="btn btn-primary">Let's Go! 🦀</button>
+    </div>
+  </div>
+
+  <!-- HIGH SCORES -->
+  <div id="highScoreScreen" class="screen">
+    <div class="menu-content">
+      <h2>🏆 High Scores</h2>
+      <div id="highScoreList" class="high-score-list"></div>
+      <button id="backFromHighScore" class="btn btn-secondary">⬅ Back</button>
+    </div>
+  </div>
+
+  <!-- LEVEL INTRO -->
+  <div id="levelIntro" class="screen">
+    <div class="menu-content">
+      <div id="levelIntroContent"></div>
+      <button id="levelStartBtn" class="btn btn-primary">Start! 🦀</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN: HUD at top, canvas below, touch controls at bottom -->
+  <div id="gameScreen" class="screen">
+    <div id="hud">
+      <div id="hudLeft"><span id="hudName">—</span></div>
+      <div id="hudCenter"><div id="equationDisplay">Get Ready!</div></div>
+      <div id="hudRight">
+        <span>⏱<span id="timerDisplay">90</span></span>
+        <span>⭐<span id="scoreDisplay">0</span></span>
+        <span>L<span id="levelDisplay">1</span></span>
+      </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <!-- Touch controls: left zone, shoot button, right zone -->
+    <div id="touchControls">
+      <button id="btnLeft"  class="touch-btn touch-move">◀</button>
+      <button id="btnShoot" class="touch-btn touch-shoot">🎯</button>
+      <button id="btnRight" class="touch-btn touch-move">▶</button>
+    </div>
+  </div>
+
+  <!-- LEVEL COMPLETE -->
+  <div id="levelComplete" class="screen">
+    <div class="menu-content">
+      <div id="levelCompleteContent"></div>
+      <button id="nextLevelBtn" class="btn btn-primary">Next ➡️</button>
+    </div>
+  </div>
+
+  <!-- REPORT CARD -->
+  <div id="reportCard" class="screen">
+    <div class="menu-content report-card">
+      <h2>🎉 Done! 🎉</h2>
+      <div id="reportContent"></div>
+      <button id="playAgainBtn" class="btn btn-primary">🔄 Again</button>
+      <button id="menuBtn" class="btn btn-secondary">🏠 Menu</button>
+    </div>
+  </div>
+
+  <!-- SCRIPTS (same logic files as desktop, plus mobile game controller) -->
+  <script src="../equations.js"></script>
+  <script src="../balloons.js"></script>
+  <script src="../obstacles.js"></script>
+  <script src="../scoring.js"></script>
+  <script src="mobile-game.js"></script>
+</body>
+</html>
