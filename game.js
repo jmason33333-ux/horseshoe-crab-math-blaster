@@ -29,7 +29,7 @@ const GameState = {
 let currentState = GameState.MENU;
 let currentLevel = 1;
 const TOTAL_LEVELS = 10;
-const ROUND_DURATION = 90; // seconds
+const ROUND_DURATION = 120; // seconds
 
 /* ---- CRAB ---- */
 const crab = {
